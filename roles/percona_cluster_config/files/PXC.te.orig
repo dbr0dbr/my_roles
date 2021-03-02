@@ -1,0 +1,100 @@
+# копипаста с https://www.percona.com/blog/2018/06/21/enforcing-selinux-with-percona-xtradb-cluster/, не работает 
+
+module PXC 1.0;
+
+require {
+        type unconfined_t;
+        type init_t;
+        type auditd_t;
+        type mysqld_t;
+        type syslogd_t;
+        type NetworkManager_t;
+        type unconfined_service_t;
+        type system_dbusd_t;
+        type tuned_t;
+        type tmp_t;
+        type dhcpc_t;
+        type sysctl_net_t;
+        type kerberos_port_t;
+        type kernel_t;
+        type unreserved_port_t;
+        type firewalld_t;
+        type systemd_logind_t;
+        type chronyd_t;
+        type policykit_t;
+        type udev_t;
+        type mysqld_safe_t;
+        type postfix_pickup_t;
+        type sshd_t;
+        type crond_t;
+        type getty_t;
+        type lvm_t;
+        type postfix_qmgr_t;
+        type postfix_master_t;
+        class process { getattr setpgid };
+        class unix_stream_socket connectto;
+        class system module_request;
+        class netlink_tcpdiag_socket { bind create getattr nlmsg_read setopt };
+        class tcp_socket { name_bind name_connect };
+        class file { getattr open read write };
+        class dir search;
+}
+
+#============= mysqld_t ==============
+allow mysqld_t NetworkManager_t:process getattr;
+allow mysqld_t auditd_t:process getattr;
+allow mysqld_t chronyd_t:process getattr;
+allow mysqld_t crond_t:process getattr;
+allow mysqld_t dhcpc_t:process getattr;
+allow mysqld_t firewalld_t:process getattr;
+allow mysqld_t getty_t:process getattr;
+allow mysqld_t init_t:process getattr;
+
+#!!!! This avc can be allowed using the boolean 'nis_enabled'
+allow mysqld_t kerberos_port_t:tcp_socket name_bind;
+allow mysqld_t kernel_t:process getattr;
+
+#!!!! This avc can be allowed using the boolean 'domain_kernel_load_modules'
+allow mysqld_t kernel_t:system module_request;
+allow mysqld_t lvm_t:process getattr;
+allow mysqld_t mysqld_safe_t:process getattr;
+allow mysqld_t policykit_t:process getattr;
+allow mysqld_t postfix_master_t:process getattr;
+allow mysqld_t postfix_pickup_t:process getattr;
+allow mysqld_t postfix_qmgr_t:process getattr;
+allow mysqld_t sysctl_net_t:file { getattr open read };
+allow mysqld_t syslogd_t:process getattr;
+allow mysqld_t system_dbusd_t:process getattr;
+allow mysqld_t systemd_logind_t:process getattr;
+allow mysqld_t tuned_t:process getattr;
+allow mysqld_t udev_t:process getattr;
+allow mysqld_t unconfined_service_t:process getattr;
+allow mysqld_t unconfined_t:process getattr;
+allow mysqld_t tuned_t:process getattr;
+allow mysqld_t udev_t:process getattr;
+allow mysqld_t sshd_t:process getattr;
+allow mysqld_t self:netlink_tcpdiag_socket { bind create getattr nlmsg_read setopt };
+
+allow mysqld_t self:process { getattr setpgid };
+
+#!!!! The file '/var/lib/mysql/mysql.sock' is mislabeled on your system.
+#!!!! Fix with $ restorecon -R -v /var/lib/mysql/mysql.sock
+#!!!! This avc can be allowed using the boolean 'daemons_enable_cluster_mode'
+allow mysqld_t self:unix_stream_socket connectto;
+allow mysqld_t sshd_t:process getattr;
+allow mysqld_t sysctl_net_t:dir search;
+allow mysqld_t sysctl_net_t:file { getattr open read };
+allow mysqld_t syslogd_t:process getattr;
+allow mysqld_t system_dbusd_t:process getattr;
+allow mysqld_t systemd_logind_t:process getattr;
+
+#!!!! WARNING 'mysqld_t' is not allowed to write or create to tmp_t.  Change the label to mysqld_tmp_t.
+allow mysqld_t tmp_t:file write;
+allow mysqld_t tuned_t:process getattr;
+allow mysqld_t udev_t:process getattr;
+allow mysqld_t unconfined_service_t:process getattr;
+allow mysqld_t unconfined_t:process getattr;
+
+#!!!! This avc can be allowed using one of the these booleans:
+#     nis_enabled, mysql_connect_any
+allow mysqld_t unreserved_port_t:tcp_socket { name_bind name_connect };

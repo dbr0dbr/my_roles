@@ -1,0 +1,8 @@
+---
+- hosts: web_balancer
+  remote_user:
+    root
+  roles:
+   - nginx
+   - zabbix-agent
+   - web_balancer

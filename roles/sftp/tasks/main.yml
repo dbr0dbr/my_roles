@@ -1,0 +1,109 @@
+- name: install samba
+  yum:
+    name: "{{ item }}"
+  with_items:
+    - samba
+    - samba-client
+  environment: "{{ proxy_env }}"
+
+- name: Open ports for samba
+  firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  with_items: 
+    - 137/tcp
+    - 138/tcp
+    - 139/tcp
+    - 445/tcp
+    - 137/udp
+    - 138/udp
+    - 138/udp
+    - 445/udp
+
+- name: Template configuration file for /etc/samba/smb.conf
+  template:
+    src:  smb.conf.j2
+    dest: '/etc/samba/smb.conf'
+  notify:
+    - restart smb
+    - restart nmb
+
+- name: enable and start smb
+  systemd:
+    name: smb
+    state: started
+    enabled: yes
+
+- name: enable and start nmb
+  systemd:
+    name: nmb
+    state: started
+    enabled: yes
+
+- name: Ensure then groups exists
+  group:
+    name: "{{ item['group'] }}"
+    state: present
+  with_items: "{{ sftp_users }}"  
+    
+- name: Create system users
+  user:
+    name: "{{ item['username'] }}"
+    state: present
+    password: "{{ item['system_pass']|password_hash('sha512') }}"
+    update_password: on_create
+  with_items: "{{ sftp_users }}"  
+  register: sys_users
+
+- name: Set samba psswords
+  shell: "printf '{{ item['smb_pass'] }}\n{{ item['smb_pass'] }}\n' | smbpasswd -a {{ item['username'] }}"
+  with_items: "{{ sftp_users }}"  
+  when: sys_users.changed
+  
+
+- name: Create a directory if it does not exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0770'
+  with_items:
+    - "/samba"
+    - "/samba/MEDOC"
+    - "/samba/MEDOC/ForSignature"
+    - "/samba/MEDOC/SuccessAttach"
+    - "/samba/MEDOC/ErrorAttach"
+    - "/samba/RMS"
+    - "/samba/RMS/SP_In"
+    - "/samba/RMS/SP_Out"
+    - "/samba/OeBS"
+    - "/samba/OeBS/SP_In"
+    - "/samba/OeBS/SP_Out"
+
+- name: Ensure then group exists
+  group:
+    name: sftpweb
+    state: present
+      
+- name: Create system users
+  user:
+    name: sftpwebuser
+    state: present
+    password: "{{ sftpwebuser_pass|password_hash('sha512') }}"
+    shell: /sbin/nologin
+    update_password: on_create
+
+- name: Confirurate sshd
+  lineinfile: path=/etc/ssh/sshd_config
+              regexp='Subsystem'
+              line='Subsystem sftp internal-sftp'
+  notify:
+    - restart sshd
+
+
+- meta: end_play
+
+
+
+

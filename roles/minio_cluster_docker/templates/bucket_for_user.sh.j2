@@ -1,0 +1,54 @@
+#!/bin/bash
+if [ -z $3 ]; then echo "usage: bucket_for_user.sh bucket_name user_name user_password" ; exit 1; fi
+user=$2
+pass=$3
+bucket=$1
+mc=/root/mc
+minio_url=http://127.0.0.1:9000
+admin_name={{ MINIO_ROOT_USER }}
+admin_pass={{ MINIO_ROOT_PASSWORD }}
+
+$mc alias set minio $minio_url $admin_name $admin_pass
+$mc mb minio/$bucket
+$mc admin user add minio/ $user $pass
+cat <<EOF> /tmp/$user-policy.json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "s3:PutBucketPolicy",
+        "s3:GetBucketPolicy",
+        "s3:DeleteBucketPolicy",
+        "s3:ListAllMyBuckets",
+        "s3:ListBucket"
+      ],
+      "Effect": "Allow",
+      "Resource": [
+        "arn:aws:s3:::$bucket"
+      ],
+      "Sid": ""
+    },
+    {
+      "Action": [
+        "s3:AbortMultipartUpload",
+        "s3:DeleteObject",
+        "s3:GetObject",
+        "s3:ListMultipartUploadParts",
+        "s3:PutObject"
+      ],
+      "Effect": "Allow",
+      "Resource": [
+        "arn:aws:s3:::$bucket/*"
+      ],
+      "Sid": ""
+    }
+  ]
+}
+EOF
+
+$mc admin policy add minio $user-policy /tmp/$user-policy.json
+echo "$mc admin policy set minio $user-policy user=$user"
+$mc admin policy set minio $user-policy user=$user
+$mc admin user list minio
+rm -f /tmp/$user-policy.json

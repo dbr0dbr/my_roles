@@ -1,0 +1,5 @@
+#Создать пользователя и базу
+ansible-playbook -i inventory.ini percona.yml 
+
+#Создать пользователя и базу, развернуть туда дамп
+ansible-playbook -i inventory.ini percona.yml -e dump=/home/andc/testdump 

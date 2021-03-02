@@ -1,0 +1,5 @@
+data_dir: /data
+admin_name: minioadmin
+admin_pass: minioadminminioadmin
+minio_port: 443
+minio_proto: https

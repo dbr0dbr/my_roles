@@ -1,0 +1,104 @@
+- name: Disable SELinux at next reboot
+  selinux:
+    state: disabled
+  register: task_result
+
+- name: Reboot immediately if there was a change.
+  shell: "sleep 5 && reboot"
+  async: 1
+  poll: 0
+  when: task_result is changed
+
+- name: Wait for the reboot to complete if there was a change.
+  wait_for_connection:
+    connect_timeout: 20
+    sleep: 5
+    delay: 5
+    timeout: 300
+  when: task_result is changed
+ 
+- name: clear data dir
+  shell: rm -rf '{{ data_dir }}'
+
+- name: Add the user 'minio' 
+  user:
+    name: minio
+    shell: /sbin/nologin
+    append: yes
+    system: yes
+
+- name: Create a data directory if it does not exist
+  file:
+    path: '{{ data_dir }}'
+    state: directory
+    owner: minio
+    group: minio
+
+- name: Open ports for minio
+  firewalld:
+    port: "9000/tcp"
+    permanent: yes
+    state: enabled
+    immediate: yes
+
+- name: Open ports for minio
+  firewalld:
+    port: "443/tcp"
+    permanent: yes
+    state: enabled
+    immediate: yes
+
+- name: Copy minio
+  copy:
+    src: minio
+    dest: "/usr/local/bin/minio"
+    mode: '0755'
+
+- name: permiss open 443 for minio user
+  shell: sudo setcap 'cap_net_bind_service=+ep' /usr/local/bin/minio
+
+
+- name: Copy minio
+  copy:
+    src: mc
+    dest: "/root/"
+    mode: '0755'
+
+- name: Template configuration file to minio service
+  template:
+    src: minio.service.j2
+    dest: '/etc/systemd/system/minio.service'
+  tags: reconfigure
+  notify:
+    - restart minio
+
+- name: Template configuration file to mc scripts
+  template:
+    src: bucket_for_user.sh.j2
+    dest: '/root/bucket_for_user.sh'
+    mode: '0700'
+  tags: reconfigure
+
+- name: Template configuration file for /etc/default/minio
+  template:
+    src: minio.j2
+    dest: '/etc/default/minio'
+  tags: reconfigure
+  notify:
+    - restart minio
+
+- name: enable and start minio.service
+  systemd:
+    name: minio
+    state: restarted
+    enabled: yes
+    
+- name: Copy certs
+  ansible.builtin.copy:
+    src: "{{ inventory_hostname }}/"
+    dest: /home/minio/.minio/certs
+    owner: minio
+    group: minio
+  notify:
+    - restart minio
+  #tags: never

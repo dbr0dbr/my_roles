@@ -1,0 +1,16 @@
+minio:
+    image: minio/minio
+    environment:
+      - MINIO_OPTS={% for host in groups['minio'] %}http://{{ hostvars[host]['ansible_host'] }}:9000/data{% if not loop.last %} {% endif %}{% endfor %}
+
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadminminioadmin
+    hostname: minio
+    container_name: minio
+    command: server /data
+    volumes:
+      - {{ data_dir }}:/data
+    ports:
+      - 9000:9000
+    restart: always
+ 

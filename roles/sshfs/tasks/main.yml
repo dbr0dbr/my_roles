@@ -1,0 +1,4 @@
+- name: install fuse-sshfs
+  yum:
+    name: fuse-sshfs
+  environment: "{{ proxy_env }}"

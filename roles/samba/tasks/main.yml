@@ -1,0 +1,43 @@
+- name: install samba
+  yum:
+    name:
+      - samba
+      - samba-client
+  environment: "{{ proxy_env }}"
+
+- name: Template configuration file for /etc/samba/smb.conf
+  template:
+    src:  smb.conf.j2
+    dest: '/etc/samba/smb.conf'
+  notify:
+    - restart smb
+    - restart nmb
+
+- name: Open ports for samba
+  firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  with_items: 
+    - 137/tcp
+    - 138/tcp
+    - 139/tcp
+    - 445/tcp
+    - 137/udp
+    - 138/udp
+    - 138/udp
+    - 445/udp
+
+- name: enable and start smb
+  systemd:
+    name: smb
+    state: started
+    enabled: yes
+
+- name: enable and start nmb
+  systemd:
+    name: nmb
+    state: started
+    enabled: yes
+

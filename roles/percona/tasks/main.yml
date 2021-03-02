@@ -1,0 +1,109 @@
+- name: Install percona repo.
+  yum:
+     name: "{{ percona_repo_url}}"
+     state: present
+  environment: "{{ proxy_env }}"
+
+- name: installing python mysql libraries
+  yum: name=MySQL-python
+  environment: "{{ proxy_env }}"
+
+- name: "Configure Percona repository"
+  shell: "percona-release enable-only pxc-{{ percona_ver }} release"
+  environment: "{{ proxy_env }}"
+
+- name: "Configure Percona repository"
+  shell: "percona-release enable tools release"
+  environment: "{{ proxy_env }}"
+  
+- name: Install percona cluster.
+  yum:
+     name: "percona-xtradb-cluster"
+  environment: "{{ proxy_env }}"
+
+- name: Install percona xtrabackup.
+  yum:
+     name: "percona-xtrabackup-{{ percona_ver }}"
+     state: present
+  environment: "{{ proxy_env }}"
+  register: percona_installed
+
+- name: Template configuration file for /etc/my.cnf
+  template:
+    src: my.cnf.j2
+    dest: '/etc/my.cnf'
+  notify:
+    - restart mysql
+  
+- name: Open ports for mysql
+  firewalld:
+    port: "3306/tcp"
+    permanent: yes
+    state: enabled
+    immediate: yes
+
+- name: enable and start mysql
+  systemd:
+    name: mysql
+    state: started
+    enabled: yes
+
+- name: get mysql temp password
+  shell: "grep 'temporary password' /var/log/mysqld.log |awk -F 'root@localhost: ' '{print $2}'"
+  register: temp_pass
+  when: percona_installed.changed
+
+- name: Set discovered Ansible Python interpreter.
+  set_fact:
+    ansible_python_interpreter: "{{ ansible_facts.python.executable }}"
+  when: ansible_python_interpreter is not defined
+
+- name: Template configuration file for /root/.my.cnf
+  template:
+    src: .my.cnf.j2
+    dest: '/root/.my.cnf'
+  vars: 
+    mysql_root_password: "{{ temp_pass.stdout }}"
+  when: percona_installed.changed
+  
+- name: Set root password
+  shell: mysql  --connect-expired-password -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '{{ mysql_root_password }}';"
+  when: percona_installed.changed
+
+- name: Template configuration file for /root/.my.cnf
+  template:
+    src: .my.cnf.j2
+    dest: '/root/.my.cnf'
+
+- name: Create a new database with name '{{ db_name }}''
+  mysql_db:
+    name: '{{ db_name }}'
+    state: present
+
+- name: Create proxysql user
+  mysql_user:
+    name: '{{ proxysql_user }}'
+    password: 'proxysql_pass }}'
+    priv: '{{ proxysql_priv }}.*:ALL'
+    state: present
+
+- name: Create mysql app user
+  mysql_user:
+    name: '{{ mysql_app_user }}'
+    password: '{{ mysql_app_pass }}'
+    priv: '{{ mysql_app_priv }}.*:ALL'
+    host: '{{ hostvars['proxysql2'][0]['ansible_host'] }}'
+    state: present
+
+- name: Copy database dump file
+  copy:
+    src: '{{ dump }}'
+    dest: /tmp/dump.sql
+  when: dump is defined
+
+- name: Restore database
+  mysql_db:
+    name: '{{ db_name }}'
+    state: import
+    target: /tmp/dump.sql
+  when: dump is defined

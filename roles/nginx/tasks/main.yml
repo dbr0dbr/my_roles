@@ -1,0 +1,32 @@
+- name: install ngninx
+  yum:
+    name: nginx
+  environment: "{{ proxy_env }}"
+
+- name: Template configuration file for /etc/nginx/nginx.conf
+  template:
+    src:  nginx.conf.j2
+    dest: '/etc/nginx/nginx.conf'
+  notify:
+    - restart nginx
+  tags: reconfigure
+
+- name: Open ports for nginx
+  firewalld:
+    port: "80/tcp"
+    permanent: yes
+    state: enabled
+    immediate: yes
+
+- name: Open ports for nginx
+  firewalld:
+    port: "443/tcp"
+    permanent: yes
+    state: enabled
+    immediate: yes
+
+- name: enable and start nginx
+  systemd:
+    name: nginx
+    state: started
+    enabled: yes

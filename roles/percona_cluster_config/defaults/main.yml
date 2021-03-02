@@ -1,0 +1,12 @@
+percona_repo_url: https://repo.percona.com/yum/percona-release-latest.noarch.rpm
+percona_ver: 80
+mysql_root_password: ASwq23.,1234
+db_name: pp_web1
+
+mysql_app_user: web_db2
+mysql_app_pass: password_for_web_db2
+mysql_app_priv: "*"
+
+proxysql_user: proxysql_user
+proxysql_pass: password_for_proxysql_user
+proxysql_priv: "*"

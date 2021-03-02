@@ -1,0 +1,43 @@
+- name: Install percona repo.
+  yum:
+     name: "{{ percona_repo_url}}"
+     state: present
+  environment: "{{ proxy_env }}"
+
+- name: "Configure Percona repository"
+  shell: "percona-release enable-only pxc-{{ percona_ver }} release"
+  environment: "{{ proxy_env }}"
+
+- name: "Configure Percona repository"
+  shell: "percona-release enable tools release"
+  environment: "{{ proxy_env }}"
+  
+- name: Install proxysql2.
+  yum:
+     name: "proxysql2"
+  environment: "{{ proxy_env }}"
+
+- name: Install mysql repo.
+  yum:
+     name: "{{ mysql_repo_url}}"
+     state: present
+  environment: "{{ proxy_env }}"
+
+- name: Install mysql client.
+  yum:
+     name: mysql-community-client
+  environment: "{{ proxy_env }}"
+
+- name: Template configuration file for /etc/proxysql.cnf
+  template:
+    src: proxysql.cnf.j2
+    dest: '/etc/proxysql.cnf'
+  notify:
+    - restart proxysql
+  tags: reconfigure
+
+- name: enable and start proxysql
+  systemd:
+    name: proxysql
+    state: started
+    enabled: yes

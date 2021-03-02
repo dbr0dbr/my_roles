@@ -1,0 +1,8 @@
+---
+- hosts: db1
+  remote_user:
+    root
+  roles:
+   - mysql
+   - zabbix-agent
+   - zabbix-mysql

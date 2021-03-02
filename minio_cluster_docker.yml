@@ -1,0 +1,6 @@
+---
+- hosts: minio
+  remote_user:
+    root
+  roles:
+   - minio_docker

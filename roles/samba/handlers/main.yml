@@ -1,0 +1,11 @@
+- name: restart smb 
+  systemd:
+    state: restarted
+    daemon_reload: yes
+    name: smb
+  
+- name: restart nmb 
+  systemd:
+    state: restarted
+    daemon_reload: yes
+    name: nmb

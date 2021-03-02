@@ -1,0 +1,7 @@
+---
+- hosts: sftp
+  remote_user:
+    root
+  roles:
+   - openssh
+   - sftp

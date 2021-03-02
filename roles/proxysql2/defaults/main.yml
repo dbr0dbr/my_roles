@@ -1,0 +1,3 @@
+percona_repo_url: https://repo.percona.com/yum/percona-release-latest.noarch.rpm
+mysql_repo_url: https://dev.mysql.com/get/mysql57-community-release-el7-11.noarch.rpm
+percona_ver: 80

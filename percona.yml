@@ -1,0 +1,9 @@
+---
+- hosts: percona
+  remote_user:
+    root
+  roles:
+#   - percona
+   - percona_cluster_config
+#   - zabbix-agent
+#   - zabbix-mysql

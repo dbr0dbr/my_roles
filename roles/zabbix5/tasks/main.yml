@@ -1,0 +1,29 @@
+- name: Install zabbix repo.
+  yum:
+     name: "{{ zabbix_repo_url}}"
+     state: present
+  environment: "{{ proxy_env }}"
+
+- name: Install centos-release-scl repo.
+  yum:
+     name: centos-release-scl
+     state: present
+  environment: "{{ proxy_env }}"
+
+- name: "Configure zabbix-frontend"
+  shell: "yum-config-manager --enable zabbix-frontend"
+  environment: "{{ proxy_env }}"
+
+- name: Install zabbix
+  yum:
+     name: "{{ packages }}"
+  environment: "{{ proxy_env }}"
+  vars:
+    packages:  
+    - zabbix-server-mysql 
+    - zabbix-agent
+    - zabbix-get
+    - zabbix-web-mysql-scl
+    - zabbix-nginx-conf-scl
+
+

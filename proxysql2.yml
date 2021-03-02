@@ -1,0 +1,7 @@
+---
+- hosts: proxysql2
+  remote_user:
+    root
+  roles:
+   - proxysql2_config
+#   - zabbix-agent

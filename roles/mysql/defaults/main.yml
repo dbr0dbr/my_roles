@@ -1,0 +1,6 @@
+mysql_repo_url: https://dev.mysql.com/get/mysql57-community-release-el7-11.noarch.rpm
+mysql_root_password: ASwq23.,1234
+db_name: pp_web1
+mysql_app_user: web_db1
+mysql_app_pass: Pass_for_web_db1
+mysql_app_priv: "*"

@@ -1,0 +1,85 @@
+  - name: Disable SELinux at next reboot
+    selinux:
+      state: disabled
+    register: task_result
+
+  - name: Reboot immediately if there was a change.
+    shell: "sleep 5 && reboot"
+    async: 1
+    poll: 0
+    when: task_result is changed
+
+  - name: Wait for the reboot to complete if there was a change.
+    wait_for_connection:
+      connect_timeout: 20
+      sleep: 5
+      delay: 5
+      timeout: 300
+    when: task_result is changed
+
+  - name: Open ports for minio
+    firewalld:
+      port: "9000/tcp"
+      permanent: yes
+      state: enabled
+      immediate: yes
+
+  - name: Open ports for minio
+    firewalld:
+      port: "443/tcp"
+      permanent: yes
+      state: enabled
+      immediate: yes
+
+  - name: clear data dir
+    shell: docker-compose down; rm -rf '{{ item }}'*
+    with_items: data_dirs
+    tags: 
+      - clean
+      - never
+
+  - name: Create a data directory if it does not exist
+    file:
+      path: '{{ item }}'
+      state: directory
+    with_items: data_dirs
+    
+  - name: install docker
+    yum:
+      name: docker
+
+  - name: enable and start docker.service
+    systemd:
+      name: docker
+      state: started
+      enabled: yes
+    
+  - name: install docker-compose
+    get_url:
+      url: "{{ docker_compse_url }}"
+      dest: /usr/local/bin/docker-compose
+      mode: '0751'
+    
+  - name: Template configuration file to docker-compose.yml
+    template:
+      src: docker-compose.yml.j2
+      dest: '/root/docker-compose.yml'
+    tags: reconfigure
+    register: docker_compose
+
+  - name: start docker-compose
+    shell: |
+      docker-compose down; docker-compose up -d
+    when: docker_compose.changed
+
+  - name: Copy minio
+    copy:
+      src: mc
+      dest: "/root/"
+      mode: '0755'
+
+  - name: Template configuration file to mc scripts
+    template:
+      src: bucket_for_user.sh.j2
+      dest: '/root/bucket_for_user.sh'
+      mode: '0700'

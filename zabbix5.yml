@@ -1,0 +1,8 @@
+---
+- hosts: zabbix5
+  remote_user:
+    root
+  roles:
+   - mysql
+   - nginx
+   - zabbix5

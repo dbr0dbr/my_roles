@@ -1,0 +1,113 @@
+- name:  set percona cluster ips
+  set_fact:
+    percona_cluster_ips:  "{{ groups['percona'] | map('extract', hostvars, ['ansible_host']) | list }}"
+
+- name: Install percona repo.
+  yum:
+     name: "{{ percona_repo_url}}"
+     state: present
+  environment: "{{ proxy_env }}"
+  register: install_status
+
+- name: "Configure Percona repository"
+  shell: "percona-release enable-only pxc-{{ percona_ver }} release"
+  environment: "{{ proxy_env }}"
+
+- name: "Configure Percona repository"
+  shell: "percona-release enable tools release"
+  environment: "{{ proxy_env }}"
+  
+- name: Install proxysql2.
+  yum:
+     name: "proxysql2"
+  environment: "{{ proxy_env }}"
+
+- name: Install mysql repo.
+  yum:
+     name: "{{ mysql_repo_url}}"
+     state: present
+  environment: "{{ proxy_env }}"
+
+- name: Install mysql client.
+  yum:
+     name: mysql-community-client
+  environment: "{{ proxy_env }}"
+
+- name: Template configuration file for /etc/proxysql.cnf
+  template:
+    src: proxysql.cnf.j2
+    dest: '/etc/proxysql.cnf'
+  notify:
+    - restart proxysql
+
+- name: enable and start proxysql
+  systemd:
+    name: proxysql
+    state: started
+    enabled: yes
+
+- name: Open ports for mysql
+  firewalld:
+    port: "6033/tcp"
+    permanent: yes
+    state: enabled
+    immediate: yes
+
+- name: installing python mysql libraries
+  yum: name=MySQL-python
+  environment: "{{ proxy_env }}"
+
+- name: Template configuration file for /root/.my.cnf (master)
+  template:
+    src: .my.cnf.j2
+    dest: '/root/.my.cnf'
+  vars: 
+    mysql_root_password: "admin"
+  when: install_status.changed
+
+- name: change sql root password
+  shell: mysql --connect-expired-password -u admin -h 127.0.0.1 -P 6032 -e "{{ item }}"
+  with_items:
+    - "UPDATE global_variables SET variable_value='admin:{{ mysql_root_password }}' WHERE variable_name='admin-admin_credentials';"
+    - "SAVE ADMIN VARIABLES TO DISK;"
+    - "LOAD ADMIN VARIABLES TO RUNTIME;"
+  when: install_status.changed
+    
+- name: Template configuration file for /root/.my.cnf (master)
+  template:
+    src: .my.cnf.j2
+    dest: '/root/.my.cnf'
+
+- name: configure cluster servers
+  shell: mysql -u admin -h 127.0.0.1 -P 6032 -e " INSERT INTO mysql_servers(hostgroup_id, hostname, port) VALUES (0,  '{{ item }}'  , 3306); "
+  with_items: "{{ percona_cluster_ips }}"
+  when: install_status.changed  
+  
+- name: save changes
+  shell: mysql --connect-expired-password -u admin -h 127.0.0.1 -P 6032 -e "{{ item }}"
+  with_items:
+    - "LOAD MYSQL SERVERS TO RUNTIME;"
+    - "SAVE MYSQL SERVERS TO DISK;"
+  when: install_status.changed
+
+- name: configure proxysql_user
+  shell: mysql -u admin -h 127.0.0.1 -P 6032 -e "UPDATE global_variables SET variable_value='{{ proxysql_user }}' WHERE variable_name='mysql-monitor_username';"
+
+- name: configure proxysql_pass
+  shell: mysql -u admin -h 127.0.0.1 -P 6032 -e "UPDATE global_variables SET variable_value= '{{ proxysql_pass }}' WHERE variable_name='mysql-monitor_password';"
+  
+- name: save changes
+  shell: mysql --connect-expired-password -u admin -h 127.0.0.1 -P 6032 -e "{{ item }}"
+  with_items:
+    - "LOAD MYSQL SERVERS TO RUNTIME;"
+    - "SAVE MYSQL SERVERS TO DISK;"
+    - "LOAD ADMIN VARIABLES TO RUNTIME;"
+    - "SAVE ADMIN VARIABLES TO DISK;"
+
+
+- name: change sql app password
+  shell: mysql -u admin -h 127.0.0.1 -P 6032 -e "{{ item }}"
+  with_items:
+    - "INSERT INTO mysql_users (username,password) VALUES ('{{ mysql_app_user }}','{{ mysql_app_pass }}');"
+    - "LOAD MYSQL USERS TO RUNTIME;"
+    - "SAVE MYSQL USERS TO DISK;"

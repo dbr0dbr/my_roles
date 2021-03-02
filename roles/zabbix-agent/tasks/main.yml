@@ -1,0 +1,34 @@
+- name: Installing repo the Zabbix Agent
+  yum:
+    name:
+      - "{{ zabbix_repo_url }}"
+    state: present
+  environment: "{{ proxy_env }}"
+
+- name: Installing Zabbix Agent
+  yum:
+    name:
+      - zabbix-agent
+    state: present
+  environment: "{{ proxy_env }}"
+
+- name: Template configuration file for /etc/zabbix/zabbix_agentd.conf
+  template:
+    src: zabbix_agentd.conf.j2
+    dest: '/etc/zabbix/zabbix_agentd.conf'
+  notify:
+    - restart zabbix-agent
+  tags: reconfigure
+
+- name: Open ports for zabbix-agent
+  firewalld:
+    port: "10050/tcp"
+    permanent: yes
+    state: enabled
+    immediate: yes
+
+- name: enable and start zabbix-agent
+  systemd:
+    name: zabbix-agent
+    state: started
+    enabled: yes

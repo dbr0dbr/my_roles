@@ -1,0 +1,3 @@
+cert: /etc/ssl/certs/nginx-selfsigned.crt
+key: /etc/ssl/private/nginx-selfsigned.key
+    

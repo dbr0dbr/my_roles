@@ -1,0 +1,21 @@
+services:
+  minio1:
+    image: {{ minio_image }}
+    volumes:
+      {% for data_dir in data_dirs %}
+- {{ data_dir }}:/data{{ loop.index }}
+      {% endfor %} 
+    expose:
+      - "{{ minio_port }}"
+    network_mode: host
+    environment:
+      MINIO_ROOT_USER: {{ MINIO_ROOT_USER }}
+      MINIO_ROOT_PASSWORD: {{ MINIO_ROOT_PASSWORD }}
+    command: server {% for data_dir in data_dirs %}{% for host in groups['minio'] %}{{ minio_proto }}://{{ hostvars[host]['ansible_host'] }}/data_dir{% if not loop.last %} {% endif %}{% endfor %}{% endfor %} 
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+      

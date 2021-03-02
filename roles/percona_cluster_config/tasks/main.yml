@@ -1,0 +1,179 @@
+- name: Get server_id
+  set_fact: 
+    server_id: "{% for name in groups['percona'] %}{% if name == inventory_hostname %}{{ loop.index }}{% endif %}{% endfor %}"
+
+- name: Set mysql servicename for nodes
+  set_fact: 
+    mysql_service_name: '{% if server_id == "1" %}mysql@bootstrap{% else %}mysql{% endif %}'
+
+- name: Install percona repo.
+  yum:
+     name: "{{ percona_repo_url}}"
+     state: present
+  environment: "{{ proxy_env }}"
+  register: install_status
+
+- name: "Configure Percona repository"
+  shell: "percona-release enable-only pxc-{{ percona_ver }} release"
+  environment: "{{ proxy_env }}"
+  when: install_status.changed
+
+- name: "Configure Percona repository"
+  shell: "percona-release enable tools release"
+  environment: "{{ proxy_env }}"
+  when: install_status.changed
+
+- name: Install percona cluster.
+  yum:
+     name: "percona-xtradb-cluster"
+  environment: "{{ proxy_env }}"
+
+- name: Install percona xtrabackup.
+  yum:
+     name: "percona-xtrabackup-{{ percona_ver }}"
+     state: present
+  environment: "{{ proxy_env }}"
+
+- name: get dirty line for wsrep_cluster_address
+  set_fact: 
+    wsrep_cluster_address_dirty_line: gcomm://{{ansible_host}},{% for host in groups['percona'] %}{% if hostvars[host]['ansible_host'] != ansible_host%}{{ hostvars[host]['ansible_host'] }},{% endif %}{% endfor %}
+    
+- name: get line for wsrep_cluster_address
+  set_fact: 
+    wsrep_cluster_address_line: "{{ wsrep_cluster_address_dirty_line[:-1] }}"
+
+- name: Template configuration file for /etc/my.cnf
+  template:
+    src: my.cnf.j2
+    dest: '/etc/my.cnf'
+  #notify:
+  #  - restart mysql
+
+- name: installing python mysql libraries
+  yum: name=MySQL-python
+  environment: "{{ proxy_env }}"
+  
+- name: Install policycoreutils-python.x86_64.
+  yum:
+     name: "policycoreutils-python.x86_64"
+  environment: "{{ proxy_env }}"
+  when: install_status.changed
+
+- name: Open ports for mysql
+  firewalld:
+    port: "{{ item }}/tcp"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  with_items:
+    - 4444
+    - 4567
+    - 4568
+    - 3306
+
+- name: copy SE Linux rules
+  copy:
+    src: PXC.te
+    dest: '/tmp/PXC.te'
+  when: install_status.changed
+
+- name: Configure SE Linux.
+  shell: '{{ item }}'
+  with_items:
+    - semanage port -m -t mysqld_port_t -p tcp 4444
+    - semanage port -m -t mysqld_port_t -p tcp 4567
+    - semanage port -a -t mysqld_port_t -p tcp 4568
+    - checkmodule -M -m -o /tmp/PXC.mod /tmp/PXC.te
+    - semodule_package -o /tmp/PXC.pp -m /tmp/PXC.mod
+    - semodule -i /tmp/PXC.pp
+  when: install_status.changed
+
+- shell: echo '' > /var/log/audit/audit.log
+
+- name: disable and stop mysql (master)
+  systemd:
+    name: mysql
+    state: stopped
+    enabled: no
+  when: install_status.changed and server_id == '1'
+
+- name: enable and start mysql@bootstrap (master)
+  systemd:
+    name: mysql@bootstrap
+    state: started
+    enabled: yes
+  when: install_status.changed and server_id == '1'
+
+- name: get mysql temp password (master)
+  shell: "grep 'temporary password' /var/log/mysqld.log |awk -F 'root@localhost: ' '{print $2}'"
+  register: temp_pass
+  when: install_status.changed and server_id == '1'
+
+- name: Template configuration file for /root/.my.cnf (master)
+  template:
+    src: .my.cnf.j2
+    dest: '/root/.my.cnf'
+  vars: 
+    mysql_root_password: "{{ temp_pass.stdout }}"
+  when: install_status.changed and server_id == '1'
+
+- name: Set root password (master)
+  shell: mysql  --connect-expired-password -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '{{ mysql_root_password }}';"
+  when: install_status.changed and server_id == '1'
+
+- name: start mysql (slaves)
+  systemd:
+    name: mysql
+    state: started
+  when: install_status.changed and server_id != '1'
+
+- name: Template configuration file for /root/.my.cnf
+  template:
+    src: .my.cnf.j2
+    dest: '/root/.my.cnf'
+
+- name: Create a new database with name '{{ db_name }}''
+  mysql_db:
+    name: '{{ db_name }}'
+    state: present
+  when: server_id == '1'
+
+- name: Create proxysql user
+  mysql_user:
+    name: '{{ proxysql_user }}'
+    password: '{{ proxysql_pass }}'
+    priv: '{{ proxysql_priv }}.*:ALL'
+    host: '%'
+    state: present
+  when: server_id == '1'
+
+- name: Create mysql app user
+  mysql_user:
+    name: '{{ mysql_app_user }}'
+    password: '{{ mysql_app_pass }}'
+    priv: '{{ mysql_app_priv }}.*:ALL'
+    host: '{{ hostvars[groups["proxysql2"][0]]["ansible_host"] }}'
+    state: present
+  when: server_id == '1'
+
+- name: Copy database dump file
+  copy:
+    src: '{{ dump }}'
+    dest: /tmp/dump.sql
+  when: server_id == '1' and dump is defined
+
+- name: Restore database
+  mysql_db:
+    name: '{{ db_name }}'
+    state: import
+    target: /tmp/dump.sql
+  when: server_id == '1' and dump is defined
+
+- name: Create mysql user
+  mysql_user:
+    name: '{{ mysql_app_user }}'
+    password: '{{ mysql_app_pass }}'
+    priv: '{{ mysql_app_priv }}.*:ALL'
+    state: present
+  when: server_id == '1'
+

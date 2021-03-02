@@ -1,0 +1,61 @@
+#алиас для подключения
+./mc alias set minio http://192.168.121.218:9000 minioadmin minioadminminioadmin
+./mc admin info minio
+
+#Пользователи
+./mc admin user list minio
+./mc admin user add minio/ newuser newuser123
+./mc admin user info minio newuser
+
+#Группы
+./mc admin group list minio
+./mc admin group add minio readers newuser
+./mc admin group  info minio readers
+
+#global permitions
+./mc admin policy list minio/
+./mc admin policy set minio/ readonly user=someuser
+
+#bucket permissons
+cat user1-policy.json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "s3:PutBucketPolicy",
+        "s3:GetBucketPolicy",
+        "s3:DeleteBucketPolicy",
+        "s3:ListAllMyBuckets",
+        "s3:ListBucket"
+      ],
+      "Effect": "Allow",
+      "Resource": [
+        "arn:aws:s3:::user1bucket"
+      ],
+      "Sid": ""
+    },
+    {
+      "Action": [
+        "s3:AbortMultipartUpload",
+        "s3:DeleteObject",
+        "s3:GetObject",
+        "s3:ListMultipartUploadParts",
+        "s3:PutObject"
+      ],
+      "Effect": "Allow",
+      "Resource": [
+        "arn:aws:s3:::user1bucket/*"
+      ],
+      "Sid": ""
+    }
+  ]
+}
+./mc admin policy add minio user1-policy user1-policy.json
+./mc admin policy set minio user1-policy user=user1
+./mc admin user list myminio
+enabled    user1                 user1-policy
+
+#Квоты
+./mc admin bucket quota minio/admins
+./mc admin bucket quota minio/admins --hard 64MB

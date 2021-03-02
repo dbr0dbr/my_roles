@@ -1,0 +1,9 @@
+docker_compse_url: https://github.com/docker/compose/releases/download/1.27.4/docker-compose-Linux-x86_64
+MINIO_ROOT_USER: minioadmin
+MINIO_ROOT_PASSWORD: minioadminminioadmin
+minio_port: 9000
+minio_proto: http
+minio_image: minio/minio:RELEASE.2021-02-19T04-38-02Z
+data_dirs: 
+  - /data1
+  - /data2

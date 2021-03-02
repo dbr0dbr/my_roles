@@ -1,0 +1,46 @@
+- hosts: webserver
+  remote_user: root
+  roles:
+   - nginx
+   - git
+   - zabbix-agent
+   - openssh
+   - sshfs
+
+- hosts: db1
+  remote_user: root
+  roles:
+   - mysql
+   - zabbix-agent
+
+- hosts: percona
+  remote_user: root
+  roles:
+   - percona
+   - zabbix-agent
+
+- hosts: proxysql2
+  remote_user: root
+  roles:
+   - proxysql2
+   - zabbix-agent
+
+- hosts: zabbix5
+  remote_user: root
+  roles:
+   - mysql
+   - nginx
+   - zabbix5
+
+- hosts: sftp
+  remote_user: root
+  roles:
+   - openssh
+
+- hosts: web_balancer
+  remote_user:
+    root
+  roles:
+   - nginx
+   - zabbix-agent
+   - web_balancer

@@ -1,0 +1,15 @@
+- name: install openssh
+  yum:
+    name: openssh
+  environment: "{{ proxy_env }}"
+
+- name: install openssh-clients
+  yum:
+    name: openssh-clients
+  environment: "{{ proxy_env }}"
+
+- name: enable and start sshd
+  systemd:
+    name: sshd
+    state: started
+    enabled: yes

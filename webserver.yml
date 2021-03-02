@@ -1,0 +1,10 @@
+---
+- hosts: webserver
+  remote_user:
+    root
+  roles:
+   - nginx
+   - git
+   - zabbix-agent
+   - openssh
+   - sshfs

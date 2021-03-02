@@ -1,0 +1,25 @@
+- name: Create zabbix mysql user
+  mysql_user:
+    name: '{{ mysql_zabbix_user }}'
+    password: '{{ mysql_zabbix_pass }}'
+    priv: '{{ zabbix_app_priv }}.*:USAGE,REPLICATION CLIENT,PROCESS,SHOW DATABASES,SHOW VIEW'
+    state: present
+
+- name: Create a directory if it does not exist
+  file:
+    path: /var/lib/zabbix
+    state: directory
+    mode: 0400
+    owner: zabbix
+    group: zabbix
+    
+- name: Template configuration file for /var/lib/zabbix/.my.cnf
+  template:
+    src: .my.cnf.j2
+    dest: '/var/lib/zabbix/.my.cnf'
+
+- name: restart zabbix-agent 
+  systemd:
+    state: restarted
+    daemon_reload: yes
+    name: zabbix-agent

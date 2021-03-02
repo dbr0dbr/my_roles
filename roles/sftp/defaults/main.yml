@@ -1,0 +1,16 @@
+sftp_users: 
+  - username: medocuser
+    group: medoc_group
+    system_pass: '11111111'
+    smb_pass: '11111111'
+  - username: rmsuser
+    group: rms_group
+    system_pass: '11111111'
+    smb_pass: '11111111'
+  - username: oebsuser
+    group: oebs_group
+    system_pass: '11111111'
+    smb_pass: '11111111'
+
+#system_pass for sftpwebuser
+sftpwebuser_pass: '11111111'
