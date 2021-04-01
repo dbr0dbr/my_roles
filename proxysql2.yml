@@ -4,4 +4,4 @@
     root
   roles:
    - proxysql2_config
-#   - zabbix-agent
+   - zabbix-agent
