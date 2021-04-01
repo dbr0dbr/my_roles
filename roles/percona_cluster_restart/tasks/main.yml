@@ -1,0 +1,88 @@
+- name: test
+  debug: 
+    msg:
+      "{% for key, value in labels.items() %}
+      <h1>Key: {{key}}</h1>
+      <h2>Value: {{value}}</h2>
+      {% endfor %}"
+
+
+- meta: end_play
+
+- name: collect data
+  block:
+    - name: collect facts about system services
+      service_facts:
+      register: services_state
+
+    - name: set percona_is_run to 1 on hosts with running mysql or mysql@bootstrap
+      set_fact: 
+        percona_is_run: "{{ 1 if (('mysql.service' in services_state['ansible_facts']['services'] and services_state['ansible_facts']['services']['mysql.service']['state'] == 'running') or ('mysql@bootstrap.service' in services_state['ansible_facts']['services'] and services_state['ansible_facts']['services']['mysql@bootstrap.service']['state'] == 'running')) else 0}}"
+
+    - name: calc good_hosts 
+      set_fact:
+        good_hosts: "{{ good_hosts|default(0)|int + hostvars[item]['percona_is_run']|int }}"
+      loop: "{{ groups['percona'] }}"
+
+    - name: Get server_id
+      set_fact: 
+        server_id: "{% for name in groups['percona'] %}{% if name == inventory_hostname %}{{ loop.index }}{% endif %}{% endfor %}"
+
+    - name: is server safe_to_bootstrap now?
+      shell: "cat /var/lib/mysql/grastate.dat| grep safe_to_bootstrap |awk -F ': ' '{ print $2}'"
+      register: current_safe_to_bootstrap
+
+    - name: calc safe_servers_for_bootstrup_col
+      set_fact:
+        safe_servers_for_bootstrup_col: "{{ safe_servers_for_bootstrup_col|default(0)|int + hostvars[item]['current_safe_to_bootstrap']['stdout']|int }}"
+      loop: "{{ groups['percona'] }}"
+  
+- name: end play if cluster running
+  block:
+    - debug:
+        msg: "Cluster already running!"
+    - meta: end_play
+  when: ( groups['percona'] ) | length | int == good_hosts | int
+
+- name: end play if multiple safe_to_bootstrap
+  block:
+    - debug:
+        msg: 
+          - "На нескольких серверах указанно 'safe_to_bootstrap: 1' в /var/lib/mysql/grastate.dat, отредактируйте когфиги, чтобы 1 осталась толко на одном, или запустите плейбук с параметром -e 'force=true', чтобы сделать главной первую ноду"
+    - meta: end_play
+  when: safe_servers_for_bootstrup_col | int > 1 and  not (force is defined and force == 'true')
+  
+- name: set safe_to_bootstrap on first server if it needed
+  lineinfile:
+    path: /var/lib/mysql/grastate.dat
+    regexp: '^safe_to_bootstrap'
+    line: 'safe_to_bootstrap: 1'
+  when: 
+    (server_id == '1' and safe_servers_for_bootstrup_col == '0') or
+    (server_id == '1' and force is defined and force == 'true' and safe_servers_for_bootstrup_col |int > 1)
+    
+- name: set safe_to_bootstrap on slaves
+  lineinfile:
+    path: /var/lib/mysql/grastate.dat
+    regexp: '^safe_to_bootstrap'
+    line: 'safe_to_bootstrap: 0'
+  when: server_id != '1' and force is defined and force == 'true' 
+
+- name: enable and start mysql@bootstrap (master)
+  systemd:
+    name: mysql@bootstrap
+    state: started
+  when: 
+    (safe_servers_for_bootstrup_col == '1' and current_safe_to_bootstrap['stdout'] == '1') or
+    (server_id == '1' and safe_servers_for_bootstrup_col == '0') or
+    (server_id == '1' and force is defined and force == 'true')
+
+- name: enable and start mysql (slaves)
+  systemd:
+    name: mysql
+    state: started
+  when: 
+    (safe_servers_for_bootstrup_col == '1' and current_safe_to_bootstrap['stdout'] == '0') or
+    (server_id != '1' and safe_servers_for_bootstrup_col == '0') or
+    (server_id != '1' and force is defined and force == 'true')
+  throttle: 1

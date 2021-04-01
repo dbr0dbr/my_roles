@@ -88,20 +88,10 @@
     - semodule -i /tmp/PXC.pp
   when: install_status.changed
 
-- shell: echo '' > /var/log/audit/audit.log
-
-- name: disable and stop mysql (master)
-  systemd:
-    name: mysql
-    state: stopped
-    enabled: no
-  when: install_status.changed and server_id == '1'
-
 - name: enable and start mysql@bootstrap (master)
   systemd:
     name: mysql@bootstrap
     state: started
-    enabled: yes
   when: install_status.changed and server_id == '1'
 
 - name: get mysql temp password (master)

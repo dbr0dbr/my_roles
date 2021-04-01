@@ -1,2 +1,4 @@
 php_repo_url: http://rpms.remirepo.net/enterprise/remi-release-7.rpm
 php_ver: 72
+php_user: nginx
+php_group: nginx

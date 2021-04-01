@@ -4,3 +4,19 @@
     daemon_reload: yes
     name: nginx
   
+- name: restart zabbix-server
+  systemd:
+    state: restarted
+    daemon_reload: yes
+    name: zabbix-server
+  
+- name: restart services
+  systemd:
+    state: restarted
+    enabled: yes
+    name: '{{ item }}'
+  with_items:
+    - zabbix-server 
+    - zabbix-agent 
+    - rh-nginx116-nginx 
+    - rh-php72-php-fpm

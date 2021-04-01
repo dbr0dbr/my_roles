@@ -1,0 +1,6 @@
+---
+- hosts: kc
+  remote_user:
+    root
+  roles:
+   - docke_compose

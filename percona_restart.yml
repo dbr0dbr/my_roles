@@ -1,0 +1,6 @@
+---
+- hosts: percona
+  remote_user:
+    root
+  roles:
+   - percona_cluster_restart

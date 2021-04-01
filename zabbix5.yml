@@ -4,5 +4,5 @@
     root
   roles:
    - mysql
-   - nginx
    - zabbix5
+   - zabbix-agent

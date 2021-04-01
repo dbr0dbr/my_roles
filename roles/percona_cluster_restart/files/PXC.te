@@ -1,0 +1,21 @@
+
+module PXC 1.0;
+
+require {
+        type mysqld_tmp_t;
+        type mysqld_t;
+        class sock_file { create unlink write };
+        class unix_stream_socket connectto;
+        class process setpgid;
+}
+
+#============= mysqld_t ==============
+allow mysqld_t mysqld_tmp_t:sock_file { create unlink write };
+allow mysqld_t self:process setpgid;
+
+#!!!! This avc can be allowed using the boolean 'daemons_enable_cluster_mode'
+allow mysqld_t self:unix_stream_socket connectto;
+
+
+
+

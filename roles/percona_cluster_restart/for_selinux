@@ -1,0 +1,7 @@
+#node 1
+mysql -e 'create database test;';
+mysql -e 'create table test.testtable (id int not null, primary key (id)) engine=innodb;'
+mysql -e 'insert into test.testtable (id) values (1);'
+
+#node 2 
+mysql -e 'insert into test.testtable (id) values (2);'

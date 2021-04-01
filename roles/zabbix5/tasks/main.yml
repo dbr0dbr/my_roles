@@ -3,6 +3,7 @@
      name: "{{ zabbix_repo_url}}"
      state: present
   environment: "{{ proxy_env }}"
+  register: install_status
 
 - name: Install centos-release-scl repo.
   yum:
@@ -13,7 +14,8 @@
 - name: "Configure zabbix-frontend"
   shell: "yum-config-manager --enable zabbix-frontend"
   environment: "{{ proxy_env }}"
-
+  when: install_status.changed
+  
 - name: Install zabbix
   yum:
      name: "{{ packages }}"
@@ -26,4 +28,70 @@
     - zabbix-web-mysql-scl
     - zabbix-nginx-conf-scl
 
+- name: Open ports for zabbix
+  firewalld:
+    port: "{{ item }}/tcp"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  with_items:
+    - 80
+    - 443
+    - 10050
+    - 10051
 
+- name: Create a new database with name zabbix
+  mysql_db:
+    name: zabbix
+    state: present
+    encoding: utf8
+
+- name: Create mysql user for zabbix
+  mysql_user:
+    name: zabbix
+    password: '{{ zabbix_mysql_pass }}'
+    priv: 'zabbix.*:ALL'
+    state: present
+
+- name: get clear db path
+  shell: zcat -f `find /usr/share/doc/ -name create.sql.gz` > /tmp/create.sql
+  register: dump_path
+  when: install_status.changed
+
+- name: Restore database
+  mysql_db:
+    name: zabbix
+    state: import
+    target: /tmp/create.sql
+  when: install_status.changed
+
+- name: Template configuration file for /etc/zabbix/zabbix_server.conf
+  template:
+    src: zabbix_server.conf.j2
+  notify:
+    - restart services
+
+- name: Template configuration file for /etc/opt/rh/rh-nginx116/nginx/conf.d/zabbix.conf
+  template:
+    src: for_nginx_zabbix.conf.j2
+    dest: '/etc/opt/rh/rh-nginx116/nginx/conf.d/zabbix.conf'
+  notify:
+    - restart services
+
+- name: Template configuration file for /etc/opt/rh/rh-php72/php-fpm.d/zabbix.conf
+  template:
+    src: for_rh-php_zabbix.conf.j2
+    dest: '/etc/opt/rh/rh-php72/php-fpm.d/zabbix.conf'
+  notify:
+    - restart services
+
+- name: start and enabled services
+  systemd:
+    state: started
+    enabled: yes
+    name: '{{ item }}'
+  with_items:
+    - zabbix-server 
+    - zabbix-agent 
+    - rh-nginx116-nginx 
+    - rh-php72-php-fpm

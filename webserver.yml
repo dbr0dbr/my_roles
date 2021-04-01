@@ -3,7 +3,8 @@
   remote_user:
     root
   roles:
-   - nginx
+   - nginx_config
+   - php-fpm
    - git
    - zabbix-agent
    - openssh

@@ -62,16 +62,17 @@
     src: .my.cnf.j2
     dest: '/root/.my.cnf'
 
-- name: Create a new database with name '{{ db_name }}''
+- name: Create a new database with name '{{ db_name }}'
   mysql_db:
-    name: '{{ db_name }}'
+    name: zabbix
     state: present
+    encoding: utf8
 
 - name: Create mysql user
   mysql_user:
-    name: '{{ mysql_app_user }}'
-    password: '{{ mysql_app_pass }}'
-    priv: '{{ mysql_app_priv }}.*:ALL'
+    name: zabbix
+    password: '{{ zabbix_mysql_pass }}'
+    priv: 'zabbix.*:ALL'
     state: present
 
 - name: Copy database dump file

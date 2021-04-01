@@ -30,3 +30,16 @@
     - php{{ php_ver }}-php-zip 
     - php{{ php_ver }}-php-xmlreader 
     - php{{ php_ver }}-php-xmlwriter
+
+- name: Set php user
+  lineinfile:
+    path: /etc/opt/remi/php72/php-fpm.d/www.conf
+    regexp: '^user ='
+    line: user = {{ php_user }}
+
+- name: Set php group
+  lineinfile:
+    path: /etc/opt/remi/php72/php-fpm.d/www.conf
+    regexp: '^group ='
+    line: group = {{ php_group }}
+
