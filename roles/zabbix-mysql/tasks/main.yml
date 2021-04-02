@@ -1,6 +1,6 @@
-- name: Set mysql servicename for nodes
+- name: Get server_id
   set_fact: 
-    mysql_service_name: '{% if server_id == "1" %}mysql@bootstrap{% else %}mysql{% endif %}'
+    server_id: "{% for name in groups['percona'] %}{% if name == inventory_hostname %}{{ loop.index }}{% endif %}{% endfor %}"
 
 - name: Create zabbix mysql user
   mysql_user:
