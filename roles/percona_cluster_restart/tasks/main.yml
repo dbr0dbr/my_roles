@@ -1,14 +1,3 @@
-- name: test
-  debug: 
-    msg:
-      "{% for key, value in labels.items() %}
-      <h1>Key: {{key}}</h1>
-      <h2>Value: {{value}}</h2>
-      {% endfor %}"
-
-
-- meta: end_play
-
 - name: collect data
   block:
     - name: collect facts about system services

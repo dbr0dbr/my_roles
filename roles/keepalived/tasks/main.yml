@@ -69,19 +69,17 @@
     state: directory
     mode: '0770'
   with_items:
-    - "/sync_files"
-    - "/sync_files/upload"
-    - "/sync_files/samba"
-    - "/sync_files/samba/MEDOC"
-    - "/sync_files/samba/MEDOC/ForSignature"
-    - "/sync_files/samba/MEDOC/SuccessAttach"
-    - "/sync_files/samba/MEDOC/ErrorAttach"
-    - "/sync_files/samba/RMS"
-    - "/sync_files/samba/RMS/SP_In"
-    - "/sync_files/samba/RMS/SP_Out"
-    - "/sync_files/samba/OeBS"
-    - "/sync_files/samba/OeBS/SP_In"
-    - "/sync_files/samba/OeBS/SP_Out"
+    - "/samba"
+    - "/samba/MEDOC"
+    - "/samba/MEDOC/ForSignature"
+    - "/samba/MEDOC/SuccessAttach"
+    - "/samba/MEDOC/ErrorAttach"
+    - "/samba/RMS"
+    - "/samba/RMS/SP_In"
+    - "/samba/RMS/SP_Out"
+    - "/samba/OeBS"
+    - "/samba/OeBS/SP_In"
+    - "/samba/OeBS/SP_Out"
 
 - name: Ensure then group exists
   group:
@@ -103,43 +101,8 @@
   notify:
     - restart sshd
 
-- name: Install lsyncd
-  yum:
-     name: "{{ packages }}"
-  environment: "{{ proxy_env }}"
-  vars:
-    packages:  
-    - lua
-    - lua-devel
-    - pkgconfig
-    - gcc
-    - asciidoc
-    - lsyncd
 
-- name: Set authorized key taken from file
-  ansible.posix.authorized_key:
-    user: root
-    state: present
-    key: "{{ lookup('file', 'id_rsa.pub') }}"
-
-- name: Copy key 
-  ansible.builtin.copy:
-    src: id_rsa
-    dest: /root/.ssh/id_rsa
-    mode: '0600'
-
-- name: Template configuration file for /etc/lsyncd.conf
-  template:
-    src:  lsyncd.conf.j2
-    dest: '/etc/lsyncd.conf'
-
-- name: restart lsyncd
-  systemd:
-    state: restarted
-    enabled: yes
-    daemon_reload: yes
-    name: lsyncd
-
+- meta: end_play
 
 
 

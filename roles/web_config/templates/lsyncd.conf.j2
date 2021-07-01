@@ -1,0 +1,31 @@
+----
+-- User configuration file for lsyncd.
+--
+-- Simple example for default rsync, but executing moves through on the target.
+--
+-- For more examples, see /usr/share/doc/lsyncd*/examples/
+-- 
+
+settings {
+  logfile = "/var/log/lsyncd/lsyncd.log",
+  maxDelays = 1,
+  insist = true,
+}
+
+sync {
+default.rsync,
+source="/usr/share/nginx/html/",
+target="{% if inventory_hostname == groups['web'][0]%}{{hostvars[groups['web'][1]]['ansible_host']}}{% else %}{{hostvars[groups['web'][0]]['ansible_host']}}{% endif %}:/usr/share/nginx/html/",
+exclude = {"/config.php" },
+
+rsync = {
+compress = true,
+acls = true,
+verbose = true,
+owner = true,
+group = true,
+perms = true,
+rsh = "/usr/bin/ssh -p 22 -o StrictHostKeyChecking=no"
+}
+}
+ 

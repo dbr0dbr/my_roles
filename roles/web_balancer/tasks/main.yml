@@ -5,3 +5,22 @@
   notify:
     - restart nginx
   tags: reconfigure
+
+- name: Copy cert
+  ansible.builtin.copy:
+    src: '{{ cert }}'
+    dest: '/etc/ssl/{{ cert }}'
+    owner: root
+    group: root
+
+- name: Copy dh
+  ansible.builtin.copy:
+    src: '{{ dh }}'
+    dest: '/etc/ssl/certs/{{ dh }}'
+    owner: root
+    group: root
+
+- name: install keepalived
+  yum:
+    name: keepalived
+  environment: "{{ proxy_env }}"

@@ -1,0 +1,45 @@
+- name: Install php repo.
+  yum:
+     name: "{{ php_repo_url}}"
+     state: present
+  environment: "{{ proxy_env }}"
+
+- name: "Configure remi repository"
+  shell: "yum-config-manager --enable remi-php{{ php_ver }}"
+  environment: "{{ proxy_env }}"
+
+- name: Install php
+  yum:
+     name: "{{ packages }}"
+  environment: "{{ proxy_env }}"
+  vars:
+    packages:  
+    - php{{ php_ver }}-php-fpm 
+    - php{{ php_ver }}-php-mysql 
+    - php{{ php_ver }}-php-common
+    - php{{ php_ver }}-php-gmp 
+    - php{{ php_ver }}-php-curl 
+    - php{{ php_ver }}-php-intl 
+    - php{{ php_ver }}-php-mbstring
+    - php{{ php_ver }}-php-xmlrpc 
+    - php{{ php_ver }}-php-gd 
+    - php{{ php_ver }}-php-bcmath 
+    - php{{ php_ver }}-php-imap 
+    - php{{ php_ver }}-php-xml
+    - php{{ php_ver }}-php-cli 
+    - php{{ php_ver }}-php-zip 
+    - php{{ php_ver }}-php-xmlreader 
+    - php{{ php_ver }}-php-xmlwriter
+
+- name: Set php user
+  lineinfile:
+    path: /etc/opt/remi/php72/php-fpm.d/www.conf
+    regexp: '^user ='
+    line: user = {{ php_user }}
+
+- name: Set php group
+  lineinfile:
+    path: /etc/opt/remi/php72/php-fpm.d/www.conf
+    regexp: '^group ='
+    line: group = {{ php_group }}
+

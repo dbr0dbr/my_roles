@@ -1,0 +1,24 @@
+root_path: /usr/share/nginx/html
+
+#/etc/php-fpm.d/www.conf
+php_user: nginx
+php_group: nginx
+pm: dynamic
+pm_max_children: 1000
+pm_start_servers: 325
+pm_min_spare_servers: 150
+pm_max_spare_servers: 500
+pm_max_requests: 500
+pm_process_idle_timeout: 30s;
+
+#php.ini
+max_execution_time: 300
+max_input_time: 600
+max_input_vars: 200000000
+memory_limit: -1
+upload_max_filesize: 50M
+max_file_uploads: 200
+display_errors: Off
+session_gc_maxlifetime: 21600
+
+ssh_user: root

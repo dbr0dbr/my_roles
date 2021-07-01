@@ -1,0 +1,160 @@
+- name: Configure SE Linux.
+  shell: '{{ item }}'
+  with_items:
+    - setsebool httpd_can_network_connect_db 1
+    - setsebool httpd_can_network_connect 1
+    - semanage permissive -a redis_t
+    - semanage permissive -a httpd_t
+
+- name: Template configuration file for /etc/nginx/nginx.conf
+  template:
+    src:  nginx.conf.j2
+    dest: '/etc/nginx/nginx.conf'
+  notify:
+    - restart nginx
+  
+- name: Set php user
+  lineinfile:
+    path: /etc/php-fpm.d/www.conf
+    regexp: '^user ='
+    line: user = {{ php_user }}
+  
+
+- name: Set php group
+  lineinfile:
+    path: /etc/php-fpm.d/www.conf
+    regexp: '^group ='
+    line: group = {{ php_group }}
+
+- name: Set pm
+  lineinfile:
+    path: /etc/php-fpm.d/www.conf
+    regexp: '^pm'
+    line: pm = {{ pm }}
+
+- name: Set pm.max_children   
+  lineinfile:
+    path: /etc/php-fpm.d/www.conf
+    regexp: '^pm.max_children'
+    line: pm.max_children = {{ pm_max_children }}
+
+- name: Set pm.start_servers   
+  lineinfile:
+    path: /etc/php-fpm.d/www.conf
+    regexp: '^pm.start_servers'
+    line: pm.start_servers = {{ pm_start_servers }}
+
+- name: Set pm.min_spare_servers   
+  lineinfile:
+    path: /etc/php-fpm.d/www.conf
+    regexp: '^pm.min_spare_servers'
+    line: pm.min_spare_servers = {{ pm_min_spare_servers }}
+
+- name: Set pm.max_spare_servers   
+  lineinfile:
+    path: /etc/php-fpm.d/www.conf
+    regexp: '^pm.max_spare_servers'
+    line: pm.max_spare_servers = {{ pm_max_spare_servers }}
+
+- name: Set pm.max_requests   
+  lineinfile:
+    path: /etc/php-fpm.d/www.conf
+    regexp: '^pm.max_requests'
+    line: pm.max_requests = {{ pm_max_requests }}
+
+- name: Set pm.process_idle_timeout   
+  lineinfile:
+    path: /etc/php-fpm.d/www.conf
+    regexp: '^pm.process_idle_timeout'
+    line: pm.process_idle_timeout = {{ pm_process_idle_timeout }}
+
+- name: Set max_execution_time
+  lineinfile:
+    path: /etc/php.ini 
+    regexp: '^max_execution_time'
+    line: max_execution_time = {{ max_execution_time }}
+
+- name: Set max_input_time
+  lineinfile:
+    path: /etc/php.ini 
+    regexp: '^max_input_time'
+    line: max_input_time = {{ max_input_time }}
+
+- name: Set max_input_vars
+  lineinfile:
+    path: /etc/php.ini 
+    regexp: '^max_input_vars'
+    line: max_input_vars = {{ max_input_vars }}
+
+- name: Set memory_limit
+  lineinfile:
+    path: /etc/php.ini 
+    regexp: '^memory_limit'
+    line: memory_limit = {{ memory_limit }}
+
+- name: Set upload_max_filesize
+  lineinfile:
+    path: /etc/php.ini 
+    regexp: '^upload_max_filesize'
+    line: upload_max_filesize = {{ upload_max_filesize }}
+
+- name: Set max_file_uploads
+  lineinfile:
+    path: /etc/php.ini 
+    regexp: '^max_file_uploads'
+    line: max_file_uploads = {{ max_file_uploads }}
+
+- name: Set display_errors
+  lineinfile:
+    path: /etc/php.ini 
+    regexp: '^display_errors'
+    line: display_errors = {{ display_errors }}
+
+- name: Set session.gc_maxlifetime
+  lineinfile:
+    path: /etc/php.ini 
+    regexp: '^session.gc_maxlifetime'
+    line: session.gc_maxlifetime = {{ session_gc_maxlifetime }}
+  
+- name: add to Dynamic Extensions
+  lineinfile:
+    dest: /etc/php.ini
+    insertafter: ';   extension=/path/to/extension/mysqli.so'
+    line: "extension=php_ldap.so"
+
+- name: add to Dynamic Extensions
+  lineinfile:
+    dest: /etc/php.ini
+    insertafter: 'extension=php_ldap.so'
+    line: "extension=oci8.so"
+
+- name: restart php-fpm 
+  systemd:
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+    name: php-fpm
+
+- name: Set authorized key taken from file
+  ansible.posix.authorized_key:
+    user: root
+    state: present
+    key: "{{ lookup('file', 'id_rsa.pub') }}"
+
+- name: Copy key 
+  ansible.builtin.copy:
+    src: id_rsa
+    dest: /root/.ssh/id_rsa
+    mode: '0600'
+
+- name: Template configuration file for /etc/lsyncd.conf
+  template:
+    src:  lsyncd.conf.j2
+    dest: '/etc/lsyncd.conf'
+
+- name: restart lsyncd
+  systemd:
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+    name: lsyncd

@@ -3,4 +3,4 @@
   remote_user:
     root
   roles:
-   - minio_cluster
+   - minio_cluster_standalone

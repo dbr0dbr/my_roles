@@ -1,0 +1,35 @@
+- hosts: WLB1
+  remote_user:
+    root
+  roles:
+   - nginx
+   - web_balancer 
+
+- hosts: sftp
+  remote_user: root
+  roles:
+   - openssh
+   - sftp
+
+- hosts: web
+  remote_user: root
+  roles:
+   - nginx
+   - git
+   - openssh
+   - sshfs
+   - php-fpm
+   - web_config
+
+- hosts: DLB
+  remote_user: root
+  roles:
+   - proxysql2
+
+- hosts: percona
+  remote_user: root
+  roles:
+   - percona_cluster_config
+
+
+

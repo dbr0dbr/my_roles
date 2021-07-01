@@ -1,0 +1,21 @@
+ 2.6 	Настройка upload
+Узнать uid и gid пользователя nginx
+На серверах WEB-3 WEB-4  выполнить 
+id -u nginx
+id -g nginx
+Важно! Полученные uid  и gid на серверах WEB-3 WEB-4 должны быть одинаковые.
+Запомнить полученный результат. 
+Создать директорию на сервере SFTP-2
+Выполнить:
+mkdir /sync_files
+mkdir /sync_files/upload
+Перенести файлы и директории с сервера WEB-3
+Выполнить:
+ scp -r user_ssh@IP_ADDRESS_WEB-3:/usr/share/nginx/upload/*  /sync_files/upload
+Примонтировать директорию на сервере  WEB-3
+Выполнить:
+sshfs -o allow_other user_ssh@IP_ADDRESS_SFTP-2:/sync_files/upload /usr/share/nginx/upload -o uid=значение -o gid=значение
+Примонтировать директорию на сервере  WEB-4
+Выполнить:
+sshfs -o allow_other user_ssh@IP_ADDRESS_SFTP-2:/sync_files/upload /usr/share/nginx/upload -o uid=значение -o gid=значение
+ 

@@ -2,3 +2,16 @@
   yum:
     name: fuse-sshfs
   environment: "{{ proxy_env }}"
+
+- name: Install lsyncd
+  yum:
+     name: "{{ packages }}"
+  environment: "{{ proxy_env }}"
+  vars:
+    packages:  
+    - lua
+    - lua-devel
+    - pkgconfig
+    - gcc
+    - asciidoc
+    - lsyncd

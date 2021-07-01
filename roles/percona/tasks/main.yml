@@ -92,7 +92,7 @@
     name: '{{ mysql_app_user }}'
     password: '{{ mysql_app_pass }}'
     priv: '{{ mysql_app_priv }}.*:ALL'
-    host: '{{ hostvars['proxysql2'][0]['ansible_host'] }}'
+    host: "{{ hostvars['DLB'][0]['ansible_host'] }}"
     state: present
 
 - name: Copy database dump file
