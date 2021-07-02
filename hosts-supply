@@ -2,9 +2,9 @@
 proxy_env={"http_proxy" : "http://192.168.121.1:8888", "https_proxy" : "http://192.168.121.1:8888", "no_proxy" : ".atbmarket.com,127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"}
 ansible_ssh_common_args='-o StrictHostKeyChecking=no'
 proxysql_user=proxysql_user
-proxysql_pass='Password_for_web_db2'
+proxysql_pass=Password_for_web_db2
 mysql_app_user=web_db2
-mysql_app_pass='Password_for_web_db2'
+mysql_app_pass=Password_for_web_db2
 #pp-wlb-1 pp-wlb-2 pp-web-1 pp-web-2 pp-percona-1 pp-percona-2 pp-percona-3 pp-dlb-1 pp-dlb-2
 ssh_user=root
 

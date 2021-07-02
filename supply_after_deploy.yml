@@ -1,0 +1,48 @@
+# ansible-playbook -i hosts-supply supply_after_deploy.yml -e sftp_pass=my_password
+- hosts: web
+  remote_user: root
+  vars:
+    web_dir: /usr/share/nginx/upload/
+    sftp_dir: /sync_files/upload/
+    sftp_pass: 'password'
+  tasks:
+  - name: Get nginx uid
+    shell: id -u nginx
+    register: raw_uid
+
+  - name: Get nginx ugd
+    shell: id -g nginx
+    register: raw_gid
+
+  - name: Get uig and guid from output
+    set_fact: 
+      uid: '{{ raw_uid.stdout }}'
+      gid: '{{ raw_gid.stdout }}'
+  
+  - name: stop with error
+    fail:
+      msg: "nginx uid on web-1 != nginx uid on web-2 or nginx gid on web-1 != nginx gid on web-2, end play"
+    when: (hostvars[groups['web'][0]]['uid'] != hostvars[groups['web'][1]]['uid']) or (hostvars[groups['web'][0]]['gid'] != hostvars[groups['web'][1]]['gid'])
+    tags: always
+    any_errors_fatal: true
+
+  - name: test sync dir on web
+    stat:
+      path: "{{ web_dir }}"
+    register: dir
+
+  - name: stop with error
+    fail:
+      msg: "{{ web_dir }} is not exist!"
+    when: not dir.stat.exists
+    tags: always
+    any_errors_fatal: true
+
+  - name: Gather from host to local
+    delegate_to: 127.0.0.1
+    run_once: true
+    become: false
+    shell: "scp -r root@{{hostvars[groups['web'][0]]['ansible_host']}}:{{ web_dir}} /tmp/; scp -r /tmp/upload/* root@{{hostvars[groups['sftp'][0]]['ansible_host']}}:{{ sftp_dir}}; rm -rf /tmp/upload; "
+  
+  - name: mount sshfs
+    shell: " echo {{ sftp_pass }} |sshfs -o allow_other,nonempty,StrictHostKeyChecking=no,password_stdin root@{{hostvars[groups['sftp'][0]]['ansible_host']}}:{{ sftp_dir }} {{ web_dir }} -o uid={{ uid }} -o gid={{ gid }} "
