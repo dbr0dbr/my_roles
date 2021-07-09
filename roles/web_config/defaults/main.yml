@@ -10,6 +10,8 @@ pm_min_spare_servers: 150
 pm_max_spare_servers: 500
 pm_max_requests: 500
 pm_process_idle_timeout: 30s;
+session_save_handler: Redis
+session_save_path: 'tcp://127.0.0.1:6379'
 
 #php.ini
 max_execution_time: 300

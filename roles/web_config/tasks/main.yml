@@ -1,3 +1,8 @@
+- name: install redis
+  yum:
+    name: redis
+  environment: "{{ proxy_env }}"
+
 - name: Configure SE Linux.
   shell: '{{ item }}'
   with_items:
@@ -67,6 +72,18 @@
     path: /etc/php-fpm.d/www.conf
     regexp: '^pm.process_idle_timeout'
     line: pm.process_idle_timeout = {{ pm_process_idle_timeout }}
+
+- name: Set php_value[session.save_handler]
+  lineinfile:
+    path: /etc/php-fpm.d/www.conf
+    regexp: '^php_value[session.save_handler]'
+    line: php_value[session.save_handler] = session_save_handler
+
+- name: Set php_value[session.save_path]
+  lineinfile:
+    path: /etc/php-fpm.d/www.conf
+    regexp: '^php_value[session.save_path]'
+    line: php_value[session.save_path] = {{ session_save_path }}
 
 - name: Set max_execution_time
   lineinfile:
@@ -159,4 +176,9 @@
     daemon_reload: yes
     name: lsyncd
 
-
+- name: start redis
+  systemd:
+    state: started
+    enabled: yes
+    daemon_reload: yes
+    name: redis

@@ -35,7 +35,6 @@ http {
 
 
     upstream backend {
-                ip_hash;
                 server {{hostvars[groups['web'][0]]['ansible_host']}};
                 {% for host in groups['web'][1:] %}
 #server {{hostvars[host]['ansible_host']}} backup;
@@ -44,7 +43,6 @@ keepalive 100;
     }
 
     upstream backend_https {
-                ip_hash;
                 server {{hostvars[groups['web'][0]]['ansible_host']}}:443;
                 {% for host in groups['web'][1:] %}
 #server {{hostvars[host]['ansible_host']}}:443 backup;

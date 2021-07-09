@@ -1,4 +1,4 @@
-- hosts: WLB1
+- hosts: WLB
   remote_user:
     root
   roles:
